@@ -1,9 +1,6 @@
-<html>
-<head>
-<meta http-equiv="Content-type" content="text/html; charset=utf-8">
-<title>Documentation FastSpring Subscription API for PHP</title>
-</head>
-<body>
+# About this fork #
+
+I had to make this fork and to add several methods because original wrapper kinda sucks.
 
 # About FastSpring #
 [FastSpring](http://www.fastspring.com) offers an innovative e-commerce engine designed to overcome ease of use, customer service, and cost issues that have plagued software e-commerce companies. We employ a customer-driven, iterative and collaborative Agile development process.
@@ -226,6 +223,3 @@ needs to match the private key in the Security tab of the Subscription Activated
 and Subscription Deactivated Notification respectively.
 
 Please see `example1/INSTRUCTIONS.txt` for full, step by step configuration.
-
-
-</body></html>
