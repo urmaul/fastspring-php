@@ -1,6 +1,7 @@
 # About this fork #
 
 I had to make this fork and to add several methods because original wrapper kinda sucks.
+BTW you can find API documentation [here](https://github.com/FastSpring/fastspring-api#fastspring-api).
 
 # About FastSpring #
 [FastSpring](http://www.fastspring.com) offers an innovative e-commerce engine designed to overcome ease of use, customer service, and cost issues that have plagued software e-commerce companies. We employ a customer-driven, iterative and collaborative Agile development process.
@@ -41,11 +42,11 @@ used to pass the data in and out of the APIs are described below.
 		
 		public function renewSubscription($subscription_ref) { ... }
 
-        public function searchOrders($query, $filterTest = true) { ... }
+		public function searchOrders($query, $filterTest = true) { ... }
 
-        public function searchSubscriptions($query) { ... }
+		public function searchSubscriptions($query) { ... }
 
-        public function searchSubscriptionsByReferrer($referrer) { ... }
+		public function searchSubscriptionsByReferrer($referrer) { ... }
 	}
 
 ## How-to add the FastSpring Subscription API to your PHP application ##
@@ -78,101 +79,101 @@ Then you instantiate a new FastSpring object with the parameters that match your
 
 
 ### class FsprgOrder ###
-    /**
-     * @var string
-     */
+	/**
+	 * @var string
+	 */
 	public $reference;
-    /**
-     * @var string Enum (open | request | requested | acceptance | accepted | fulfillment | fulfilled | completion | completed | canceled | failed)
-     */
+	/**
+	 * @var string Enum (open | request | requested | acceptance | accepted | fulfillment | fulfilled | completion | completed | canceled | failed)
+	 */
 	public $status;
-    /**
-     * @var string date (like "2010-08-15T00:00:00.000Z")
-     */
+	/**
+	 * @var string date (like "2010-08-15T00:00:00.000Z")
+	 */
 	public $statusChanged;
-    /**
-     * @var boolean
-     */
+	/**
+	 * @var boolean
+	 */
 	public $test;
-    /**
-     * @var string enum (none | partial | full)
-     */
-    public $returnStatus;
-    /**
-     * @var FsprgCustomer
-     */
+	/**
+	 * @var string enum (none | partial | full)
+	 */
+	public $returnStatus;
+	/**
+	 * @var FsprgCustomer
+	 */
 	public $customer;
-    /**
-     * @var string
-     */
-    public $currency;
-    /**
-     * @var string
-     */
-    public $referrer;
-    /**
-     * @var string
-     */
-    public $originIp;
-    /**
-     * @var float
-     */
-    public $total = 0;
-    /**
-     * @var float
-     */
-    public $tax = 0;
-    /**
-     * @var float
-     */
-    public $shipping = 0;
-    /**
-     * @var string
-     */
-    public $sourceName;
-    /**
-     * @var string
-     */
-    public $sourceKey;
-    /**
-     * @var string
-     */
-    public $sourceCampaign;
-    /**
-     * @var FsprgCustomer
-     */
-    public $purchaser;
-    /**
-     * @var stdClass
-     */
-    public $address;
-    /**
-     * @var FsprgOrderItem[]
-     */
-    public $orderItems;
-    /**
-     * @var stdClass[]
-     */
-    public $payments;
+	/**
+	 * @var string
+	 */
+	public $currency;
+	/**
+	 * @var string
+	 */
+	public $referrer;
+	/**
+	 * @var string
+	 */
+	public $originIp;
+	/**
+	 * @var float
+	 */
+	public $total = 0;
+	/**
+	 * @var float
+	 */
+	public $tax = 0;
+	/**
+	 * @var float
+	 */
+	public $shipping = 0;
+	/**
+	 * @var string
+	 */
+	public $sourceName;
+	/**
+	 * @var string
+	 */
+	public $sourceKey;
+	/**
+	 * @var string
+	 */
+	public $sourceCampaign;
+	/**
+	 * @var FsprgCustomer
+	 */
+	public $purchaser;
+	/**
+	 * @var stdClass
+	 */
+	public $address;
+	/**
+	 * @var FsprgOrderItem[]
+	 */
+	public $orderItems;
+	/**
+	 * @var stdClass[]
+	 */
+	public $payments;
 
 
 ### class FsprgOrderItem ###
-    /**
-     * @var string
-     */
-    public $productDisplay;
-    /**
-     * @var string
-     */
-    public $productName;
-    /**
-     * @var integer
-     */
-    public $quantity = 0;
-    /**
-     * @var string
-     */
-    public $subscriptionReference;
+	/**
+	 * @var string
+	 */
+	public $productDisplay;
+	/**
+	 * @var string
+	 */
+	public $productName;
+	/**
+	 * @var integer
+	 */
+	public $quantity = 0;
+	/**
+	 * @var string
+	 */
+	public $subscriptionReference;
 
 
 ### class FsprgCustomer ###
