@@ -9,6 +9,9 @@ class FastSpring {
 	private $api_username;
 	private $api_password;
 	
+    /**
+     * @var boolean
+     */
 	public $test_mode = false;
 	
 	public function __construct($store_id, $api_username, $api_password) {
@@ -205,16 +208,125 @@ class FastSpring {
 		}
 	}
 	
+    /**
+     * Search orders in the entire company.
+     * @param string $query seqrch query.
+     * The query string is case-insensitive and can be any of the following:
+     * * Exact order reference. Example: ABC123-123-123
+     * * Customer last name (full or 'starts with'). Example: doe
+     * * Customer company name (full or 'starts with'). Example: abc
+     * * Full customer email address. Example: doe@abc.com
+     * * Customer email domain name, beginning with an "@" sign. Example: @abc.com
+     * * Last 5 digits of a credit card number (credit card orders only). Example: 54321
+     * * Last 4 digits of a credit card number (credit card orders only). Example: 4321
+     * * Specific coupon code. Example search phrase: coupon XYZ123
+     * * Exact referrer. Example: referrer abc
+     * @param boolean $filterTest if true, only orders with test mode equal to
+     * current test mode will be returned. Defaults to true.
+     * @return FsprgOrder[]
+     */
+    public function searchOrders($query, $filterTest = true)
+    {
+        $url = $this->makeUrl('/orders/search?query=' . urlencode($query));
+        $xml = $this->requestGet($url);
+        
+        $orders = array();
+        foreach ($xml->order as $orderXml) {
+            $order = $this->parseFsprgOrder($orderXml);
+            
+            if (!$filterTest || $order->test == $this->test_mode) {
+                $orders[] = $order;
+            }
+        }
+        
+        return $orders;
+    }
+    
+    /**
+     * Makes http GET request and returns result xml.
+     * @param string $url
+     * @return SimpleXMLElement
+     * @throws FsprgException
+     */
+    private function requestGet($url)
+    {
+        $ch = curl_init($url);
+        return $this->request($ch);
+    }
+    
+    /**
+     * Makes http request and returns result xml.
+     * @param curl $ch
+     * @return SimpleXMLElement
+     * @throws FsprgException
+     */
+    private function request($ch)
+    {
+        curl_setopt($ch, CURLOPT_USERPWD, $this->api_username . ":" . $this->api_password);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); 
+		
+		// turn ssl certificate verification off, i get http response 0 otherwise
+		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+		
+		$response = curl_exec($ch);
+		$info = curl_getinfo($ch);
+		
+		if ($info["http_code"] == 200) {
+			set_error_handler("domDocumentErrorHandler");
+	
+			try {
+                $xml = simplexml_load_string($response);
+	
+		  	} catch(Exception $e) {
+		  		$fsprgEx = new FsprgException("An error occurred calling the FastSpring subscription service", 0, $e);
+		  		$fsprgEx->httpStatusCode = $info["http_code"];
+			}
+			
+			restore_error_handler();
+		} else {
+			$fsprgEx = new FsprgException("An error occurred calling the FastSpring subscription service");
+			$fsprgEx->httpStatusCode = $info["http_code"];
+		}
+		
+		if (isset($fsprgEx)) {
+			throw $fsprgEx;
+		}
+		
+  		return $xml;
+    }
+    
 	/**
 	 * compose customer's subscription management url for a given subscription reference
 	 */
 	private function getSubscriptionUrl($subscription_ref) {
-		$url = "https://api.fastspring.com/company/".$this->store_id."/subscription/".$subscription_ref;
+		$url = $this->getBaseUrl()."/subscription/".$subscription_ref;
 
 		$url = $this->addTestMode($url);
 		
 		return $url;
 	}
+    
+    /**
+     * Creates api url with url part.
+     * @param string $part
+     * @return string
+     */
+    private function makeUrl($part)
+    {
+        $url = $this->getBaseUrl() . $part;
+		$url = $this->addTestMode($url);
+        return $url;
+    }
+    
+    /**
+     * compose base subscription url
+     * @return string
+     */
+    private function getBaseUrl()
+    {
+        return "https://api.fastspring.com/company/".$this->store_id;
+    }
 	
 	/**
 	 * add test parameter to url if test mode enabled
@@ -231,6 +343,23 @@ class FastSpring {
 		return $url;
 	}
 	
+	/**
+	 * Parse order xml into order and customer data.
+     * @return FsprgOrder
+	 */
+	private function parseFsprgOrder($doc) {
+        $obj = new FsprgOrder();
+		
+        $obj->reference = (string) $doc->reference;
+        $obj->status = (string) $doc->status;
+        $obj->statusChanged = (string) $doc->statusChanged;
+        $obj->test = (boolean) $doc->test;
+        $obj->returnStatus = (string) $doc->returnStatus;
+        $obj->customer = $this->parseFsprgCustomer($doc->customer);
+  		
+  		return $obj;
+	}
+    
 	/**
 	 * parse subscription xml into subscription and customer data
 	 */
@@ -263,6 +392,49 @@ class FastSpring {
   		
   		return $sub;
 	}
+
+    /**
+	 * Parse customer xml into customer data.
+     * @return FsprgCustomer
+	 */
+	private function parseFsprgCustomer($doc) {
+        $customer = new FsprgCustomer();
+  		
+  		$customer->firstName = (string) $doc->firstName;
+  		$customer->lastName = (string) $doc->lastName;
+  		$customer->company = (string) $doc->company;
+  		$customer->email = (string) $doc->email;
+  		$customer->phoneNumber = (string) $doc->phoneNumber;
+        
+        return $customer;
+    }
+}
+
+class FsprgOrder {
+    /**
+     * @var string
+     */
+	public $reference;
+    /**
+     * @var string Enum (open | request | requested | acceptance | accepted | fulfillment | fulfilled | completion | completed | canceled | failed)
+     */
+	public $status;
+    /**
+     * @var string date (like "2010-08-15T00:00:00.000Z")
+     */
+	public $statusChanged;
+    /**
+     * @var boolean
+     */
+	public $test;
+    /**
+     * @var string enum (none | partial | full)
+     */
+    public $returnStatus;
+    /**
+     * @var FsprgCustomer
+     */
+	public $customer;
 }
 
 class FsprgSubscription {

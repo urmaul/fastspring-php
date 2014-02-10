@@ -43,6 +43,8 @@ used to pass the data in and out of the APIs are described below.
 		public function cancelSubscription($subscription_ref) { ... }
 		
 		public function renewSubscription($subscription_ref) { ... }
+
+        public function searchOrders($query, $filterTest = true) { ... }
 	}
 
 ## How-to add the FastSpring Subscription API to your PHP application ##
@@ -72,6 +74,33 @@ Then you instantiate a new FastSpring object with the parameters that match your
 	public $productName;
 	public $tags;
 	public $quantity;
+
+
+### class FsprgOrder ###
+    /**
+     * @var string
+     */
+	public $reference;
+    /**
+     * @var string Enum (open | request | requested | acceptance | accepted | fulfillment | fulfilled | completion | completed | canceled | failed)
+     */
+	public $status;
+    /**
+     * @var string date (like "2010-08-15T00:00:00.000Z")
+     */
+	public $statusChanged;
+    /**
+     * @var boolean
+     */
+	public $test;
+    /**
+     * @var string enum (none | partial | full)
+     */
+    public $returnStatus;
+    /**
+     * @var FsprgCustomer
+     */
+	public $customer;
 
 
 ### class FsprgCustomer ###
