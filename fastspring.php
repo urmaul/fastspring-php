@@ -3,23 +3,22 @@ if (!function_exists("curl_init")) {
   throw new Exception("FastSpring API needs the CURL PHP extension.");
 }
 
-
 class FastSpring {
 	private $store_id;
 	private $api_username;
 	private $api_password;
 	
-    /**
-     * @var boolean
-     */
+	/**
+	 * @var boolean
+	 */
 	public $test_mode = false;
-    
-    /**
-     * If true, only orders with test mode equal to current test mode will
-     * be returned.
-     * @var boolean
-     */
-    public $filter_test = true;
+	
+	/**
+	 * If true, only orders with test mode equal to current test mode will
+	 * be returned.
+	 * @var boolean
+	 */
+	public $filter_test = true;
 	
 	public function __construct($store_id, $api_username, $api_password) {
 		$this->store_id = $store_id;
@@ -60,12 +59,12 @@ class FastSpring {
 	
 			try {
 				$doc = new DOMDocument();
-		  		$doc->loadXML($response);
+				$doc->loadXML($response);
 	
-		  		$sub = $this->parseFsprgSubscription($doc);
-		  	} catch(Exception $e) {
-		  		$fsprgEx = new FsprgException("An error occurred calling the FastSpring subscription service", 0, $e);
-		  		$fsprgEx->httpStatusCode = $info["http_code"];
+				$sub = $this->parseFsprgSubscription($doc);
+			} catch(Exception $e) {
+				$fsprgEx = new FsprgException("An error occurred calling the FastSpring subscription service", 0, $e);
+				$fsprgEx->httpStatusCode = $info["http_code"];
 			}
 			
 			restore_error_handler();
@@ -78,7 +77,7 @@ class FastSpring {
 			throw $fsprgEx;
 		}
 		
-  		return $sub;
+		return $sub;
 	}
 	
 	/**
@@ -108,12 +107,12 @@ class FastSpring {
 	
 			try {
 				$doc = new DOMDocument();
-			  	$doc->loadXML($response);
-			  	
-			  	$sub = $this->parseFsprgSubscription($doc);
+				$doc->loadXML($response);
+				
+				$sub = $this->parseFsprgSubscription($doc);
 			  } catch(Exception $e) {
 				$fsprgEx = new FsprgException("An error occurred calling the FastSpring subscription service", 0, $e);
-		  		$fsprgEx->httpStatusCode = $info["http_code"];
+				$fsprgEx->httpStatusCode = $info["http_code"];
 			}
 			
 			restore_error_handler();
@@ -121,14 +120,14 @@ class FastSpring {
 			$fsprgEx = new FsprgException("An error occurred calling the FastSpring subscription service");
 			$fsprgEx->httpStatusCode = $info["http_code"];
 		}
-	  	
-	  	curl_close($ch);
-	  	
-	  	if (isset($fsprgEx)) {
-	  		throw $fsprgEx;
-	  	}
-	  	
-	  	return $sub;
+		
+		curl_close($ch);
+		
+		if (isset($fsprgEx)) {
+			throw $fsprgEx;
+		}
+		
+		return $sub;
 	}
 	
 	/**
@@ -157,14 +156,14 @@ class FastSpring {
 	
 			try {
 				$doc = new DOMDocument();
-			  	$doc->loadXML($response);
-			  	
-			  	$sub = $this->parseFsprgSubscription($doc);
-			  	
-			  	$subResp->subscription = $sub;
+				$doc->loadXML($response);
+				
+				$sub = $this->parseFsprgSubscription($doc);
+				
+				$subResp->subscription = $sub;
 			  } catch(Exception $e) {
 				$fsprgEx = new FsprgException("An error occurred calling the FastSpring subscription service", 0, $e);
-		  		$fsprgEx->httpStatusCode = $info["http_code"];
+				$fsprgEx->httpStatusCode = $info["http_code"];
 			}
 			
 			restore_error_handler();
@@ -172,14 +171,14 @@ class FastSpring {
 			$fsprgEx = new FsprgException("An error occurred calling the FastSpring subscription service");
 			$fsprgEx->httpStatusCode = $info["http_code"];
 		}
-	  	
-	  	curl_close($ch);
-	  	
-	  	if (isset($fsprgEx)) {
-	  		throw $fsprgEx;
-	  	}
-	  	
-	  	return $subResp;
+		
+		curl_close($ch);
+		
+		if (isset($fsprgEx)) {
+			throw $fsprgEx;
+		}
+		
+		return $subResp;
 	}
 	
 	/**
@@ -215,119 +214,119 @@ class FastSpring {
 		}
 	}
 	
-    /**
-     * Returns an order identified by its reference.
-     * @param string $reference
-     * @return FsprgOrder
-     */
-    public function getOrder($reference)
-    {
-        $url = $this->makeUrl('/order/' . $reference);
-        $xml = $this->requestGet($url);
-        
-        return $this->parseFsprgOrder($xml);
-    }
-    
-    /**
-     * Search orders in the entire company.
-     * @param string $query search query.
-     * The query string is case-insensitive and can be any of the following:
-     * * Exact order reference. Example: ABC123-123-123
-     * * Customer last name (full or 'starts with'). Example: doe
-     * * Customer company name (full or 'starts with'). Example: abc
-     * * Full customer email address. Example: doe@abc.com
-     * * Customer email domain name, beginning with an "@" sign. Example: @abc.com
-     * * Last 5 digits of a credit card number (credit card orders only). Example: 54321
-     * * Last 4 digits of a credit card number (credit card orders only). Example: 4321
-     * * Specific coupon code. Example search phrase: coupon XYZ123
-     * * Exact referrer. Example: referrer abc
-     * @return FsprgOrder[]
-     */
-    public function searchOrders($query)
-    {
-        $url = $this->makeUrl('/orders/search?query=' . urlencode($query));
-        $xml = $this->requestGet($url);
-        
-        $orders = array();
-        foreach ($xml->order as $orderXml) {
-            $order = $this->parseFsprgOrder($orderXml, true);
-            
-            if (!$this->filter_test || $order->test == $this->test_mode) {
-                $orders[] = $order;
-            }
-        }
-        
-        return $orders;
-    }
-    
-    /**
-     * Search orders in the entire company and gets related subscriptions.
-     * @param string $query search query.
-     * The query string is case-insensitive and can be any of the following:
-     * * Exact order reference. Example: ABC123-123-123
-     * * Customer last name (full or 'starts with'). Example: doe
-     * * Customer company name (full or 'starts with'). Example: abc
-     * * Full customer email address. Example: doe@abc.com
-     * * Customer email domain name, beginning with an "@" sign. Example: @abc.com
-     * * Last 5 digits of a credit card number (credit card orders only). Example: 54321
-     * * Last 4 digits of a credit card number (credit card orders only). Example: 4321
-     * * Specific coupon code. Example search phrase: coupon XYZ123
-     * * Exact referrer. Example: referrer abc
-     * @return FsprgSubscription[]
-     */
-    public function searchSubscriptions($query)
-    {
-        $orders = $this->searchOrders($query);
-        $subscriptionRefs = array();
-        foreach ($orders as $order) {
-            $order = $this->getOrder($order->reference);
-            foreach ($order->orderItems as $orderItem) {
-                if ($orderItem->subscriptionReference)
-                    $subscriptionRefs[] = $orderItem->subscriptionReference;
-            }
-        }
-        
-        $subscriptionRefs = array_unique($subscriptionRefs);
-        $subscriptions = array();
-        foreach ($subscriptionRefs as $subscriptionRef) {
-            $subscriptions[] = $this->getSubscription($subscriptionRef);
-        }
-        
-        return $subscriptions;
-    }
-    
-    /**
-     * Search orders in the entire company and gets related subscriptions.
-     * @param string $referrer
-     * @return FsprgSubscription[]
-     */
-    public function searchSubscriptionsByReferrer($referrer)
-    {
-        $query = 'referrer ' . $referrer;
-        return $this->searchSubscriptions($query);
-    }
-    
-    /**
-     * Makes http GET request and returns result xml.
-     * @param string $url
-     * @return SimpleXMLElement
-     * @throws FsprgException
-     */
-    private function requestGet($url)
-    {
-        $ch = curl_init($url);
-        return $this->request($ch);
-    }
-    
-    /**
-     * Makes http request and returns result xml.
-     * @param curl $ch
-     * @return SimpleXMLElement
-     * @throws FsprgException
-     */
-    private function request($ch)
-    {
-        curl_setopt($ch, CURLOPT_USERPWD, $this->api_username . ":" . $this->api_password);
+	/**
+	 * Returns an order identified by its reference.
+	 * @param string $reference
+	 * @return FsprgOrder
+	 */
+	public function getOrder($reference)
+	{
+		$url = $this->makeUrl('/order/' . $reference);
+		$xml = $this->requestGet($url);
+		
+		return $this->parseFsprgOrder($xml);
+	}
+	
+	/**
+	 * Search orders in the entire company.
+	 * @param string $query search query.
+	 * The query string is case-insensitive and can be any of the following:
+	 * * Exact order reference. Example: ABC123-123-123
+	 * * Customer last name (full or 'starts with'). Example: doe
+	 * * Customer company name (full or 'starts with'). Example: abc
+	 * * Full customer email address. Example: doe@abc.com
+	 * * Customer email domain name, beginning with an "@" sign. Example: @abc.com
+	 * * Last 5 digits of a credit card number (credit card orders only). Example: 54321
+	 * * Last 4 digits of a credit card number (credit card orders only). Example: 4321
+	 * * Specific coupon code. Example search phrase: coupon XYZ123
+	 * * Exact referrer. Example: referrer abc
+	 * @return FsprgOrder[]
+	 */
+	public function searchOrders($query)
+	{
+		$url = $this->makeUrl('/orders/search?query=' . urlencode($query));
+		$xml = $this->requestGet($url);
+		
+		$orders = array();
+		foreach ($xml->order as $orderXml) {
+			$order = $this->parseFsprgOrder($orderXml, true);
+			
+			if (!$this->filter_test || $order->test == $this->test_mode) {
+				$orders[] = $order;
+			}
+		}
+		
+		return $orders;
+	}
+	
+	/**
+	 * Search orders in the entire company and gets related subscriptions.
+	 * @param string $query search query.
+	 * The query string is case-insensitive and can be any of the following:
+	 * * Exact order reference. Example: ABC123-123-123
+	 * * Customer last name (full or 'starts with'). Example: doe
+	 * * Customer company name (full or 'starts with'). Example: abc
+	 * * Full customer email address. Example: doe@abc.com
+	 * * Customer email domain name, beginning with an "@" sign. Example: @abc.com
+	 * * Last 5 digits of a credit card number (credit card orders only). Example: 54321
+	 * * Last 4 digits of a credit card number (credit card orders only). Example: 4321
+	 * * Specific coupon code. Example search phrase: coupon XYZ123
+	 * * Exact referrer. Example: referrer abc
+	 * @return FsprgSubscription[]
+	 */
+	public function searchSubscriptions($query)
+	{
+		$orders = $this->searchOrders($query);
+		$subscriptionRefs = array();
+		foreach ($orders as $order) {
+			$order = $this->getOrder($order->reference);
+			foreach ($order->orderItems as $orderItem) {
+				if ($orderItem->subscriptionReference)
+					$subscriptionRefs[] = $orderItem->subscriptionReference;
+			}
+		}
+		
+		$subscriptionRefs = array_unique($subscriptionRefs);
+		$subscriptions = array();
+		foreach ($subscriptionRefs as $subscriptionRef) {
+			$subscriptions[] = $this->getSubscription($subscriptionRef);
+		}
+		
+		return $subscriptions;
+	}
+	
+	/**
+	 * Search orders in the entire company and gets related subscriptions.
+	 * @param string $referrer
+	 * @return FsprgSubscription[]
+	 */
+	public function searchSubscriptionsByReferrer($referrer)
+	{
+		$query = 'referrer ' . $referrer;
+		return $this->searchSubscriptions($query);
+	}
+	
+	/**
+	 * Makes http GET request and returns result xml.
+	 * @param string $url
+	 * @return SimpleXMLElement
+	 * @throws FsprgException
+	 */
+	private function requestGet($url)
+	{
+		$ch = curl_init($url);
+		return $this->request($ch);
+	}
+	
+	/**
+	 * Makes http request and returns result xml.
+	 * @param curl $ch
+	 * @return SimpleXMLElement
+	 * @throws FsprgException
+	 */
+	private function request($ch)
+	{
+		curl_setopt($ch, CURLOPT_USERPWD, $this->api_username . ":" . $this->api_password);
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true); 
 		
 		// turn ssl certificate verification off, i get http response 0 otherwise
@@ -341,11 +340,11 @@ class FastSpring {
 			set_error_handler("domDocumentErrorHandler");
 	
 			try {
-                $xml = simplexml_load_string($response);
+				$xml = simplexml_load_string($response);
 	
-		  	} catch(Exception $e) {
-		  		$fsprgEx = new FsprgException("An error occurred calling the FastSpring subscription service", 0, $e);
-		  		$fsprgEx->httpStatusCode = $info["http_code"];
+			} catch(Exception $e) {
+				$fsprgEx = new FsprgException("An error occurred calling the FastSpring subscription service", 0, $e);
+				$fsprgEx->httpStatusCode = $info["http_code"];
 			}
 			
 			restore_error_handler();
@@ -358,9 +357,9 @@ class FastSpring {
 			throw $fsprgEx;
 		}
 		
-  		return $xml;
-    }
-    
+		return $xml;
+	}
+	
 	/**
 	 * compose customer's subscription management url for a given subscription reference
 	 */
@@ -371,27 +370,27 @@ class FastSpring {
 		
 		return $url;
 	}
-    
-    /**
-     * Creates api url with url part.
-     * @param string $part
-     * @return string
-     */
-    private function makeUrl($part)
-    {
-        $url = $this->getBaseUrl() . $part;
+	
+	/**
+	 * Creates api url with url part.
+	 * @param string $part
+	 * @return string
+	 */
+	private function makeUrl($part)
+	{
+		$url = $this->getBaseUrl() . $part;
 		$url = $this->addTestMode($url);
-        return $url;
-    }
-    
-    /**
-     * compose base subscription url
-     * @return string
-     */
-    private function getBaseUrl()
-    {
-        return "https://api.fastspring.com/company/".$this->store_id;
-    }
+		return $url;
+	}
+	
+	/**
+	 * compose base subscription url
+	 * @return string
+	 */
+	private function getBaseUrl()
+	{
+		return "https://api.fastspring.com/company/".$this->store_id;
+	}
 	
 	/**
 	 * add test parameter to url if test mode enabled
@@ -410,44 +409,44 @@ class FastSpring {
 	
 	/**
 	 * Parse order xml into order and customer data.
-     * @param SimpleXMLElement $doc order element.
-     * @param boolean $partial partial parsing.
-     * If true, function will parse olny part of order data.
-     * @return FsprgOrder
+	 * @param SimpleXMLElement $doc order element.
+	 * @param boolean $partial partial parsing.
+	 * If true, function will parse olny part of order data.
+	 * @return FsprgOrder
 	 */
 	private function parseFsprgOrder($doc, $partial = false) {
-        $obj = new FsprgOrder();
+		$obj = new FsprgOrder();
 		
-        $obj->reference = (string) $doc->reference;
-        $obj->status = (string) $doc->status;
-        $obj->statusChanged = (string) $doc->statusChanged;
-        $obj->test = (boolean) $doc->test;
-        $obj->returnStatus = (string) $doc->returnStatus;
-        $obj->customer = $this->parseFsprgCustomer($doc->customer);
-        
-        if (!$partial) {
-            $obj->currency = (string) $doc->currency;
-            $obj->referrer = (string) $doc->referrer;
-            $obj->originIp = (string) $doc->originIp;
-            $obj->total = (string) $doc->total;
-            $obj->tax = (string) $doc->tax;
-            $obj->shipping = (string) $doc->shipping;
-            $obj->sourceName = (string) $doc->sourceName;
-            $obj->sourceKey = (string) $doc->sourceKey;
-            $obj->sourceCampaign = (string) $doc->sourceCampaign;
-            $obj->purchaser = $this->parseFsprgCustomer($doc->purchaser);
-            $obj->address = json_decode(json_encode($doc->address));
-            foreach ($doc->orderItems->orderItem as $orderItem) {
-                $obj->orderItems[] = $this->parseFsprgOrderItem($orderItem);
-            }
-            foreach ($doc->payments->payment as $payment) {
-                $obj->payments[] = json_decode(json_encode($payment));
-            }
-        }
-  		
-  		return $obj;
+		$obj->reference = (string) $doc->reference;
+		$obj->status = (string) $doc->status;
+		$obj->statusChanged = (string) $doc->statusChanged;
+		$obj->test = (boolean) $doc->test;
+		$obj->returnStatus = (string) $doc->returnStatus;
+		$obj->customer = $this->parseFsprgCustomer($doc->customer);
+		
+		if (!$partial) {
+			$obj->currency = (string) $doc->currency;
+			$obj->referrer = (string) $doc->referrer;
+			$obj->originIp = (string) $doc->originIp;
+			$obj->total = (string) $doc->total;
+			$obj->tax = (string) $doc->tax;
+			$obj->shipping = (string) $doc->shipping;
+			$obj->sourceName = (string) $doc->sourceName;
+			$obj->sourceKey = (string) $doc->sourceKey;
+			$obj->sourceCampaign = (string) $doc->sourceCampaign;
+			$obj->purchaser = $this->parseFsprgCustomer($doc->purchaser);
+			$obj->address = json_decode(json_encode($doc->address));
+			foreach ($doc->orderItems->orderItem as $orderItem) {
+				$obj->orderItems[] = $this->parseFsprgOrderItem($orderItem);
+			}
+			foreach ($doc->payments->payment as $payment) {
+				$obj->payments[] = json_decode(json_encode($payment));
+			}
+		}
+		
+		return $obj;
 	}
-    
+	
 	/**
 	 * parse subscription xml into subscription and customer data
 	 */
@@ -456,143 +455,143 @@ class FastSpring {
 		
 		$sub->status = $doc->getElementsByTagName("status")->item(0)->nodeValue;
 		$sub->statusChanged = strtotime($doc->getElementsByTagName("statusChanged")->item(0)->nodeValue);
-  		$sub->statusReason = $doc->getElementsByTagName("statusReason")->item(0)->nodeValue;
-  		$sub->cancelable = $doc->getElementsByTagName("cancelable")->item(0)->nodeValue;
-  		$sub->reference = $doc->getElementsByTagName("reference")->item(0)->nodeValue;
-  		$sub->test = $doc->getElementsByTagName("test")->item(0)->nodeValue;
-  		
-  		$customer = new FsprgCustomer();
-  		
-  		$customer->firstName = $doc->getElementsByTagName("firstName")->item(0)->nodeValue;
-  		$customer->lastName = $doc->getElementsByTagName("lastName")->item(0)->nodeValue;
-  		$customer->company = $doc->getElementsByTagName("company")->item(0)->nodeValue;
-  		$customer->email = $doc->getElementsByTagName("email")->item(0)->nodeValue;
-  		$customer->phoneNumber = $doc->getElementsByTagName("phoneNumber")->item(0)->nodeValue;
-  		
-  		$sub->customer = $customer;
-  		
-  		$sub->customerUrl = $doc->getElementsByTagName("customerUrl")->item(0)->nodeValue;
-  		$sub->productName = $doc->getElementsByTagName("productName")->item(0)->nodeValue;
-  		$sub->tags = $doc->getElementsByTagName("tags")->item(0)->nodeValue;
-  		$sub->quantity = $doc->getElementsByTagName("quantity")->item(0)->nodeValue;
-  		$sub->nextPeriodDate = strtotime($doc->getElementsByTagName("nextPeriodDate")->item(0)->nodeValue);
-  		$sub->end = strtotime($doc->getElementsByTagName("end")->item(0)->nodeValue);
-  		
-  		return $sub;
+		$sub->statusReason = $doc->getElementsByTagName("statusReason")->item(0)->nodeValue;
+		$sub->cancelable = $doc->getElementsByTagName("cancelable")->item(0)->nodeValue;
+		$sub->reference = $doc->getElementsByTagName("reference")->item(0)->nodeValue;
+		$sub->test = $doc->getElementsByTagName("test")->item(0)->nodeValue;
+		
+		$customer = new FsprgCustomer();
+		
+		$customer->firstName = $doc->getElementsByTagName("firstName")->item(0)->nodeValue;
+		$customer->lastName = $doc->getElementsByTagName("lastName")->item(0)->nodeValue;
+		$customer->company = $doc->getElementsByTagName("company")->item(0)->nodeValue;
+		$customer->email = $doc->getElementsByTagName("email")->item(0)->nodeValue;
+		$customer->phoneNumber = $doc->getElementsByTagName("phoneNumber")->item(0)->nodeValue;
+		
+		$sub->customer = $customer;
+		
+		$sub->customerUrl = $doc->getElementsByTagName("customerUrl")->item(0)->nodeValue;
+		$sub->productName = $doc->getElementsByTagName("productName")->item(0)->nodeValue;
+		$sub->tags = $doc->getElementsByTagName("tags")->item(0)->nodeValue;
+		$sub->quantity = $doc->getElementsByTagName("quantity")->item(0)->nodeValue;
+		$sub->nextPeriodDate = strtotime($doc->getElementsByTagName("nextPeriodDate")->item(0)->nodeValue);
+		$sub->end = strtotime($doc->getElementsByTagName("end")->item(0)->nodeValue);
+		
+		return $sub;
 	}
 
-    /**
+	/**
 	 * Parse order item xml into order item data.
-     * @return FsprgOrderItem
+	 * @return FsprgOrderItem
 	 */
 	private function parseFsprgOrderItem($doc) {
-        $obj = new FsprgOrderItem();
-  		
-  		$obj->productDisplay = (string) $doc->productDisplay;
-  		$obj->productName = (string) $doc->productName;
-  		$obj->quantity = (integer) $doc->quantity;
-  		$obj->subscriptionReference = (string) $doc->subscriptionReference;
-        
-        return $obj;
-    }
+		$obj = new FsprgOrderItem();
+		
+		$obj->productDisplay = (string) $doc->productDisplay;
+		$obj->productName = (string) $doc->productName;
+		$obj->quantity = (integer) $doc->quantity;
+		$obj->subscriptionReference = (string) $doc->subscriptionReference;
+		
+		return $obj;
+	}
 
-    /**
+	/**
 	 * Parse customer xml into customer data.
-     * @return FsprgCustomer
+	 * @return FsprgCustomer
 	 */
 	private function parseFsprgCustomer($doc) {
-        $customer = new FsprgCustomer();
-  		
-  		$customer->firstName = (string) $doc->firstName;
-  		$customer->lastName = (string) $doc->lastName;
-  		$customer->company = (string) $doc->company;
-  		$customer->email = (string) $doc->email;
-  		$customer->phoneNumber = (string) $doc->phoneNumber;
-        
-        return $customer;
-    }
+		$customer = new FsprgCustomer();
+		
+		$customer->firstName = (string) $doc->firstName;
+		$customer->lastName = (string) $doc->lastName;
+		$customer->company = (string) $doc->company;
+		$customer->email = (string) $doc->email;
+		$customer->phoneNumber = (string) $doc->phoneNumber;
+		
+		return $customer;
+	}
 }
 
 class FsprgOrder {
-    /**
-     * @var string
-     */
+	/**
+	 * @var string
+	 */
 	public $reference;
-    /**
-     * @var string Enum (open | request | requested | acceptance | accepted | fulfillment | fulfilled | completion | completed | canceled | failed)
-     */
+	/**
+	 * @var string Enum (open | request | requested | acceptance | accepted | fulfillment | fulfilled | completion | completed | canceled | failed)
+	 */
 	public $status;
-    /**
-     * @var string date (like "2010-08-15T00:00:00.000Z")
-     */
+	/**
+	 * @var string date (like "2010-08-15T00:00:00.000Z")
+	 */
 	public $statusChanged;
-    /**
-     * @var boolean
-     */
+	/**
+	 * @var boolean
+	 */
 	public $test;
-    /**
-     * @var string enum (none | partial | full)
-     */
-    public $returnStatus;
-    /**
-     * @var FsprgCustomer
-     */
+	/**
+	 * @var string enum (none | partial | full)
+	 */
+	public $returnStatus;
+	/**
+	 * @var FsprgCustomer
+	 */
 	public $customer;
-    
-    /* Full data */
-    
-    /**
-     * @var string
-     */
-    public $currency;
-    /**
-     * @var string
-     */
-    public $referrer;
-    /**
-     * @var string
-     */
-    public $originIp;
-    /**
-     * @var float
-     */
-    public $total = 0;
-    /**
-     * @var float
-     */
-    public $tax = 0;
-    /**
-     * @var float
-     */
-    public $shipping = 0;
-    /**
-     * @var string
-     */
-    public $sourceName;
-    /**
-     * @var string
-     */
-    public $sourceKey;
-    /**
-     * @var string
-     */
-    public $sourceCampaign;
-    /**
-     * @var FsprgCustomer
-     */
-    public $purchaser;
-    /**
-     * @var stdClass
-     */
-    public $address;
-    /**
-     * @var FsprgOrderItem[]
-     */
-    public $orderItems;
-    /**
-     * @var stdClass[]
-     */
-    public $payments;
+	
+	/* Full data */
+	
+	/**
+	 * @var string
+	 */
+	public $currency;
+	/**
+	 * @var string
+	 */
+	public $referrer;
+	/**
+	 * @var string
+	 */
+	public $originIp;
+	/**
+	 * @var float
+	 */
+	public $total = 0;
+	/**
+	 * @var float
+	 */
+	public $tax = 0;
+	/**
+	 * @var float
+	 */
+	public $shipping = 0;
+	/**
+	 * @var string
+	 */
+	public $sourceName;
+	/**
+	 * @var string
+	 */
+	public $sourceKey;
+	/**
+	 * @var string
+	 */
+	public $sourceCampaign;
+	/**
+	 * @var FsprgCustomer
+	 */
+	public $purchaser;
+	/**
+	 * @var stdClass
+	 */
+	public $address;
+	/**
+	 * @var FsprgOrderItem[]
+	 */
+	public $orderItems;
+	/**
+	 * @var stdClass[]
+	 */
+	public $payments;
 }
 
 class FsprgSubscription {
@@ -610,22 +609,22 @@ class FsprgSubscription {
 }
 
 class FsprgOrderItem {
-    /**
-     * @var string
-     */
-    public $productDisplay;
-    /**
-     * @var string
-     */
-    public $productName;
-    /**
-     * @var integer
-     */
-    public $quantity = 0;
-    /**
-     * @var string
-     */
-    public $subscriptionReference;
+	/**
+	 * @var string
+	 */
+	public $productDisplay;
+	/**
+	 * @var string
+	 */
+	public $productName;
+	/**
+	 * @var integer
+	 */
+	public $quantity = 0;
+	/**
+	 * @var string
+	 */
+	public $subscriptionReference;
 }
 
 class FsprgCustomer {
