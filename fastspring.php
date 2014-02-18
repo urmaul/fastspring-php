@@ -29,6 +29,13 @@ class FastSpring {
 	/**
 	 * create new order url and redirect user to it 
 	 */
+	public function createOrder($product_ref, $customer_ref) {
+		$this->createSubscription($product_ref, $customer_ref);
+	}
+	
+	/**
+	 * create new subsription url and redirect user to it 
+	 */
 	public function createSubscription($product_ref, $customer_ref) {
 		$url = "http://sites.fastspring.com/".$this->store_id."/product/".$product_ref."?referrer=".$customer_ref;
 		$url = $this->addTestMode($url);
@@ -38,6 +45,7 @@ class FastSpring {
 	
 	/**
 	 * retrieve subscription data from fastspring API
+	 * @return FsprgSubscription
 	 */ 
 	public function getSubscription($subscription_ref) {
 		$url = $this->getSubscriptionUrl($subscription_ref);
@@ -78,6 +86,21 @@ class FastSpring {
 		}
 		
 		return $sub;
+	}
+	
+	/**
+	 * Retrieve subscriptions data from fastspring API.
+	 * @param string[] $subscription_refs
+	 * @return FsprgSubscription[]
+	 */
+	public function getSubscriptions($subscription_refs)
+	{
+		$subscriptions = array();
+		foreach ($subscription_refs as $ref) {
+			$subscriptions[] = $this->getSubscription($ref);
+		}
+		
+		return $subscriptions;
 	}
 	
 	/**
@@ -260,6 +283,36 @@ class FastSpring {
 	}
 	
 	/**
+	 * Search orders in the entire company and gets related subscription refs.
+	 * @param string $query search query.
+	 * The query string is case-insensitive and can be any of the following:
+	 * * Exact order reference. Example: ABC123-123-123
+	 * * Customer last name (full or 'starts with'). Example: doe
+	 * * Customer company name (full or 'starts with'). Example: abc
+	 * * Full customer email address. Example: doe@abc.com
+	 * * Customer email domain name, beginning with an "@" sign. Example: @abc.com
+	 * * Last 5 digits of a credit card number (credit card orders only). Example: 54321
+	 * * Last 4 digits of a credit card number (credit card orders only). Example: 4321
+	 * * Specific coupon code. Example search phrase: coupon XYZ123
+	 * * Exact referrer. Example: referrer abc
+	 * @return FsprgSubscription[]
+	 */
+	public function searchSubscriptionRefs($query)
+	{
+		$orders = $this->searchOrders($query);
+		$subscriptionRefs = array();
+		foreach ($orders as $order) {
+			$order = $this->getOrder($order->reference);
+			foreach ($order->orderItems as $orderItem) {
+				if ($orderItem->subscriptionReference)
+					$subscriptionRefs[] = $orderItem->subscriptionReference;
+			}
+		}
+		
+		return array_unique($subscriptionRefs);
+	}
+	
+	/**
 	 * Search orders in the entire company and gets related subscriptions.
 	 * @param string $query search query.
 	 * The query string is case-insensitive and can be any of the following:
@@ -276,34 +329,8 @@ class FastSpring {
 	 */
 	public function searchSubscriptions($query)
 	{
-		$orders = $this->searchOrders($query);
-		$subscriptionRefs = array();
-		foreach ($orders as $order) {
-			$order = $this->getOrder($order->reference);
-			foreach ($order->orderItems as $orderItem) {
-				if ($orderItem->subscriptionReference)
-					$subscriptionRefs[] = $orderItem->subscriptionReference;
-			}
-		}
-		
-		$subscriptionRefs = array_unique($subscriptionRefs);
-		$subscriptions = array();
-		foreach ($subscriptionRefs as $subscriptionRef) {
-			$subscriptions[] = $this->getSubscription($subscriptionRef);
-		}
-		
-		return $subscriptions;
-	}
-	
-	/**
-	 * Search orders in the entire company and gets related subscriptions.
-	 * @param string $referrer
-	 * @return FsprgSubscription[]
-	 */
-	public function searchSubscriptionsByReferrer($referrer)
-	{
-		$query = 'referrer ' . $referrer;
-		return $this->searchSubscriptions($query);
+		$subscriptionRefs = $this->searchSubscriptionRefs($query);
+		return $this->getSubscriptions($subscriptionRefs);
 	}
 	
 	/**
@@ -595,6 +622,9 @@ class FsprgOrder {
 }
 
 class FsprgSubscription {
+	/**
+	 * @var string Enum (active | inactive)
+	 */
 	public $status;
 	public $statusChanged;
 	public $statusReason;
@@ -606,6 +636,15 @@ class FsprgSubscription {
 	public $productName;
 	public $tags;
 	public $quantity;
+	/**
+	 * @var integer next period timestamp
+	 */
+	public $nextPeriodDate;
+	
+	public function isActive()
+	{
+		return $this->status === 'active';
+	}
 }
 
 class FsprgOrderItem {
